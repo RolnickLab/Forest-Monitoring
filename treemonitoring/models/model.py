@@ -3,9 +3,12 @@ import json
 import os
 import traceback
 from pathlib import Path
+from typing import Optional, Tuple, Dict
+
 
 import numpy as np
 import torch
+from torch import nn
 import torch.nn as nn
 import torch.optim as optim
 from accelerate import Accelerator
@@ -20,41 +23,60 @@ from treemonitoring.utils.utils import map_to_colors
 from treemonitoring.utils.visualizer import WandbVisualizer
 
 
+
+
+
 class Model(BaseExperiment):
-    def __init__(self, net, pretrained=True, feature_extractor=None):
-        self.state = {}
-        self.net = net
-        self.feature_extractor = feature_extractor
+    def __init__(self, net: nn.Module, pretrained: bool = True, feature_extractor: Optional[nn.Module] = None):
+        # Initialize basic attributes
+        self.state: Dict[str, Any] = {}
+        self.net: nn.Module = net
+        self.feature_extractor: Optional[nn.Module] = feature_extractor
         super().__init__(pretrained)
 
-        # Init accelerator and device
-        self.accelerator = Accelerator(log_with="wandb")
-        self.device = self.accelerator.device
+        # Set up accelerator and device
+        self._setup_accelerator()
 
+        # Initialize model and loss
+        self._init_model_and_loss()
+
+        # Set up optimizer and learning rate
+        self._setup_optimizer()
+
+        # Initialize project and visualizer
+        self._init_project_and_visualizer()
+
+        # Prepare model, optimizer, and data loaders
+        self._prepare_for_training()
+
+        # Initialize evaluators
+        self._init_evaluators()
+
+        self._check_eval_metric()
+
+    def _setup_accelerator(self) -> None:
+        self.accelerator: Accelerator = Accelerator(log_with="wandb")
+        self.device: torch.device = self.accelerator.device
         self.net.to(self.device)
-        self.loss = Loss(loss_name=self.cfg["model"]["loss"])
-        self.loss_name = self.cfg["model"]["loss"]
 
-        self.d_sizes = (self.cfg["dataset"]["w_size"], self.cfg["dataset"]["h_size"])
-        self.name = self.cfg["model"]["name"]
-        self._build_optim()
-        self.lr_step = self.cfg["model"]["lr_step"]
+    def _init_model_and_loss(self) -> None:
+        self.loss: Loss = Loss(loss_name=self.cfg["model"]["loss"])
+        self.loss_name: str = self.cfg["model"]["loss"]
+        self.d_sizes: Tuple[int, int] = (self.cfg["dataset"]["w_size"], self.cfg["dataset"]["h_size"])
+        self.name: str = self.cfg["model"]["name"]
 
-        # Get the total number of parameters in the model
-        total_params = sum(p.numel() for p in self.net.parameters())
-        param_count_millions = total_params / 1e6
+        # Log model parameters
+        total_params: int = sum(p.numel() for p in self.net.parameters())
+        param_count_millions: float = total_params / 1e6
         print(f"The model has {param_count_millions:.2f} million parameters.")
 
-        self.project_name = (
-            self.cfg["dataset"]["name"]
-            + "_"
-            + self.cfg["model"]["name"]
-            + "_"
-            + self.cfg["model"]["loss"]
-            + self.cfg["base_exp"]
-        )
+    def _setup_optimizer(self) -> None:
+        self._build_optim()
+        self.lr_step: int = self.cfg["model"]["lr_step"]
 
-        self.visualizer = WandbVisualizer(
+    def _init_project_and_visualizer(self) -> None:
+        self.project_name: str = f"{self.cfg['dataset']['name']}_{self.cfg['model']['name']}_{self.cfg['model']['loss']}{self.cfg['base_exp']}"
+        self.visualizer: WandbVisualizer = WandbVisualizer(
             self.project_name,
             self.cfg["experiment"]["name"],
             cfg=self.cfg,
@@ -63,6 +85,7 @@ class Model(BaseExperiment):
             accelerate=self.accelerator,
         )
 
+    def _prepare_for_training(self) -> None:
         (
             self.net,
             self.optimizer,
@@ -78,25 +101,23 @@ class Model(BaseExperiment):
             self.loaders["test"],
             self.scheduler,
         )
+        self._register_for_checkpointing()
 
+    def _register_for_checkpointing(self) -> None:
         self.accelerator.register_for_checkpointing(self.optimizer)
         self.accelerator.register_for_checkpointing(self.scheduler)
         self.accelerator.register_for_checkpointing(self.net)
 
-        self.evaluator = Evaluator(
+    def _init_evaluators(self) -> None:
+        self.evaluator: Evaluator = Evaluator(
             self.cfg["experiment"]["eval_metrics"], self.task, self.n_classes
         )
-
-        self.evaluator_genus = Evaluator(
+        self.evaluator_genus: Evaluator = Evaluator(
             self.cfg["experiment"]["eval_metrics_genus"], self.task, self.n_classes_genus
         )
-
-        self.evaluator_family = Evaluator(
+        self.evaluator_family: Evaluator = Evaluator(
             self.cfg["experiment"]["eval_metrics_family"], self.task, self.n_classes_family
         )
-
-        self._check_eval_metric()
-
     def train(self) -> None:
         epoch_iterator = range(self.epoch, self.n_epochs)
         for epoch in epoch_iterator:
