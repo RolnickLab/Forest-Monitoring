@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from treemonitoring.utils.diceloss import VanillaDiceCE, WeightedDiceCE
+from treemonitoring.utils.diceloss import WeightedDiceCE
 from treemonitoring.utils.hierarchical_loss import Hierarchical_Loss
 from treemonitoring.utils.paths import Paths
 
@@ -47,7 +47,7 @@ class Loss:
         self.loss_ref["MSE"] = nn.MSELoss()
         self.loss_ref["DiceCE"] = WeightedDiceCE(  
             self.w1, self.w2, weight=self.weights
-        )  # VanillaDiceCE(self.w1, self.w2, weight=self.weights)
+        ) 
         self.loss_ref["HLoss"] = Hierarchical_Loss(w1=1.0, w2=1.0, w3=1.0, weight=self.weights)
 
     def _build_losses(self):

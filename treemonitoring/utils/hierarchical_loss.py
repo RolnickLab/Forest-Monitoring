@@ -120,12 +120,6 @@ class Hierarchical_Loss(nn.Module):
             torch.log(family_tensor + self.epsilon), target[:, 2, :, :]
         )
 
-        #        print(
-        #            "Species Loss: {}, Genus Loss: {}, Family loss: {}".format(
-        #                sp_loss_tensor.item(), ge_loss_tensor.item(), fa_loss_tensor.item()
-        #            )
-        #        )
-
         loss = sp_loss_tensor + 0.3 * ge_loss_tensor + 0.1 * fa_loss_tensor
         return (
             loss,

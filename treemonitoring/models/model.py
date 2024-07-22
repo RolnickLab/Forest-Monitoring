@@ -469,8 +469,6 @@ class Model(BaseExperiment):
             "convlstm",
         ]:
             outputs = outputs
-        elif self.name in ("mlp3", "toymodel", "spec1dconv"):
-            outputs = outputs
         else:
             raise Exception(
                 "Output formatting is not supported yet for model {}.".format(self.name)

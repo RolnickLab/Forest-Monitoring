@@ -103,6 +103,8 @@ class ImageTimeSeriesDataset(Dataset):
 
         mask_array = np.array(mask)
 
+        # Hacking fix for the LALA higher-level taxon.
+        # Need to re-create the dataset channel.
         # Get the 3rd channel of the mask array
         channel_3 = mask_array[:, :, 2]
 

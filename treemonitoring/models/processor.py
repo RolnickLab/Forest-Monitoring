@@ -11,18 +11,6 @@ class Processor(nn.Module):
             # Config base
             nn.Conv3d(in_channels=3, out_channels=32, kernel_size=(3, 3, 3), padding=(0, 1, 1)),
             nn.Conv3d(in_channels=32, out_channels=64, kernel_size=(2, 3, 3), padding=(0, 1, 1))
-            # Config extra channels
-            #            nn.Conv3d(in_channels=3, out_channels=64, kernel_size=(3, 3, 3), padding=(0, 1, 1)),
-            #            nn.Conv3d(in_channels=64, out_channels=128, kernel_size=(2, 3, 3), padding=(0, 1, 1))
-            # Config 3 layers
-            #            nn.Conv3d(in_channels=3, out_channels=32, kernel_size=(3, 3, 3), padding=(1, 1, 1)),
-            #            nn.Conv3d(in_channels=32, out_channels=64, kernel_size=(3, 3, 3), padding=(0, 1, 1)),
-            #            nn.Conv3d(in_channels=64, out_channels=128, kernel_size=(2, 3, 3), padding=(0, 1, 1))
-            #        nn.Conv3d(in_channels=6, out_channels=24, kernel_size=(2, 1, 1)),
-            #        nn.Conv3d(in_channels=24, out_channels=48, kernel_size=(1, 1, 1)),
-            #        nn.Conv3d(in_channels=48, out_channels=48, kernel_size=(2, 1, 1))
-            #        nn.Conv3d(in_channels=6, out_channels=12, kernel_size=(2, 1, 1)),
-            #        nn.Conv3d(in_channels=12, out_channels=24, kernel_size=(2, 1, 1))
         )
 
     def forward(self, x):
@@ -63,4 +51,3 @@ if __name__ == "__main__":
     x = torch.rand((2, 3, 4, 768, 768))
     out = model(x)
     print(out.shape)
-#    print(torch.squeeze(out).shape)
