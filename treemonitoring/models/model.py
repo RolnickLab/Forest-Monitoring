@@ -1,8 +1,39 @@
 """Class to train a PyTorch model."""
+from pathlib import Path
+import json
+import os
+import traceback
+from typing import Dict, Tuple, Any, Optional, Union, List
+
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from accelerate import Accelerator
+from PIL import Image
+from torch.optim.lr_scheduler import ExponentialLR
+from tqdm import tqdm
+
+from treemonitoring.models.base import BaseExperiment
+from treemonitoring.utils.loss import Loss
+from treemonitoring.utils.metrics import Evaluator
+from treemonitoring.utils.utils import map_to_colors
+from treemonitoring.utils.visualizer import WandbVisualizer
+
+
+"""
+Model class for training and evaluating PyTorch models for tree monitoring.
+
+This module provides a flexible framework for training various PyTorch models
+on tree monitoring datasets, with support for different loss functions,
+optimizers, and evaluation metrics.
+"""
+
 import json
 import os
 import traceback
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -21,42 +52,76 @@ from treemonitoring.utils.visualizer import WandbVisualizer
 
 
 class Model(BaseExperiment):
-    def __init__(self, net, pretrained=True, feature_extractor=None):
-        self.state = {}
+    """
+    A class for training and evaluating PyTorch models.
+
+    This class extends BaseExperiment and provides methods for training,
+    evaluation, and prediction using various PyTorch models.
+    """
+
+    def __init__(
+        self,
+        net: nn.Module,
+        pretrained: bool = True,
+        feature_extractor: Optional[Any] = None
+    ):
+        """
+        Initialize the Model instance.
+
+        Args:
+            net (nn.Module): The PyTorch model to be trained/evaluated.
+            pretrained (bool): Whether to use pretrained weights.
+            feature_extractor (Optional[Any]): Feature extractor for the model.
+        """
+        self.state: Dict[str, Any] = {}
         self.net = net
         self.feature_extractor = feature_extractor
         super().__init__(pretrained)
 
-        # Init accelerator and device
+        self._initialize_accelerator()
+        self._setup_model()
+        self._setup_loss_and_metrics()
+        self._setup_visualizer()
+
+    def _initialize_accelerator(self) -> None:
+        """Initialize the Accelerator for distributed training."""
         self.accelerator = Accelerator(log_with="wandb")
         self.device = self.accelerator.device
 
+    def _setup_model(self) -> None:
+        """Set up the model, optimizer, and scheduler."""
         self.net.to(self.device)
-        self.loss = Loss(loss_name=self.cfg["model"]["loss"])
-        self.loss_name = self.cfg["model"]["loss"]
-
-        self.d_sizes = (self.cfg["dataset"]["w_size"], self.cfg["dataset"]["h_size"])
-        self.name = self.cfg["model"]["name"]
         self._build_optim()
         self.lr_step = self.cfg["model"]["lr_step"]
 
-        # Get the total number of parameters in the model
         total_params = sum(p.numel() for p in self.net.parameters())
         param_count_millions = total_params / 1e6
         print(f"The model has {param_count_millions:.2f} million parameters.")
 
-        #        if not pretrained:
-        #            self.net.apply(self._init_weights)  # Init weights
-        #        else:
-        #            self.accelerator.load_state(self.args.ckp)
+        self._prepare_distributed_components()
 
+    def _setup_loss_and_metrics(self) -> None:
+        """Set up loss function and evaluation metrics."""
+        self.loss = Loss(loss_name=self.cfg["model"]["loss"])
+        self.loss_name = self.cfg["model"]["loss"]
+
+        self.evaluator = Evaluator(
+            self.cfg["experiment"]["eval_metrics"], self.task, self.n_classes
+        )
+        self.evaluator_genus = Evaluator(
+            self.cfg["experiment"]["eval_metrics_genus"], self.task, self.n_classes_genus
+        )
+        self.evaluator_family = Evaluator(
+            self.cfg["experiment"]["eval_metrics_family"], self.task, self.n_classes_family
+        )
+
+        self._check_eval_metric()
+
+    def _setup_visualizer(self) -> None:
+        """Set up the visualizer for logging and visualization."""
         self.project_name = (
-            self.cfg["dataset"]["name"]
-            + "_"
-            + self.cfg["model"]["name"]
-            + "_"
-            + self.cfg["model"]["loss"]
-            + self.cfg["base_exp"]
+            f"{self.cfg['dataset']['name']}_{self.cfg['model']['name']}_"
+            f"{self.cfg['model']['loss']}{self.cfg['base_exp']}"
         )
 
         self.visualizer = WandbVisualizer(
@@ -68,6 +133,8 @@ class Model(BaseExperiment):
             accelerate=self.accelerator,
         )
 
+    def _prepare_distributed_components(self) -> None:
+        """Prepare components for distributed training."""
         (
             self.net,
             self.optimizer,
@@ -88,81 +155,54 @@ class Model(BaseExperiment):
         self.accelerator.register_for_checkpointing(self.scheduler)
         self.accelerator.register_for_checkpointing(self.net)
 
-        self.evaluator = Evaluator(
-            self.cfg["experiment"]["eval_metrics"], self.task, self.n_classes
-        )
+    def train(self) -> None:
+        """
+        Train the model for the specified number of epochs.
+        """
+        epoch_iterator = range(self.epoch, self.n_epochs)
+        for epoch in epoch_iterator:
+            self.next_epoch()
 
-        self.evaluator_genus = Evaluator(
-            self.cfg["experiment"]["eval_metrics_genus"], self.task, self.n_classes_genus
-        )
+            for i, data in enumerate(tqdm(self.loaders["train"]), 0):
+                self.next_step()
 
-        self.evaluator_family = Evaluator(
-            self.cfg["experiment"]["eval_metrics_family"], self.task, self.n_classes_family
-        )
+                self.optimizer.zero_grad()
 
-        self._check_eval_metric()
+                inputs, labels = self._format_inputs(data)
 
-    def train(self):
-        try:
-            epoch_iterator = range(self.epoch, self.n_epochs)
-            for epoch in epoch_iterator:
-                self.next_epoch()
-                for i, data in enumerate(tqdm(self.loaders["train"]), 0):
-                    self.next_step()
-                    inputs, labels = self._format_inputs(data)
-                    self.optimizer.zero_grad()
-                    if self.name == "maskformer":
-                        outputs = self.net(
-                            pixel_values=inputs["pixel_values"].to(self.device),
-                            pixel_mask=inputs["pixel_mask"].to(self.device),
-                            mask_labels=inputs["mask_labels"],
-                            class_labels=inputs["class_labels"],
-                        )
-                        self.loss.set_values(outputs.loss)
-                    else:
-                        if self.data_mode == "SITS":
-                            outputs = self._format_outputs(
-                                self.net(inputs[0], batch_positions=inputs[1])
-                            )
-                        #                            print(inputs[0].shape, outputs.shape)
-                        else:
-                            outputs = self._format_outputs(self.net(inputs))
-                        #                        print(outputs.shape, labels.shape)
-                        _, _ = self.loss.compute(outputs, labels)
-                    # print(inputs[0].shape, outputs.shape, labels.shape)
+                outputs = self._format_outputs(self.net(inputs))
+
+                if self.loss_name == "HLoss":
+                    _, _ = self.loss.compute(outputs, labels)
+                else:
+                    _, _ = self.loss.compute(outputs, labels[:, 0, :, :])
+
+                if self.name == "mask2former":
+                    for l in self.loss._values:
+                        agg_val = sum(list(l.values()))
+                    self.accelerator.backward(agg_val)
+                else:
                     self.accelerator.backward(sum(self.loss._values))
-                    self.optimizer.step()
-                    self._train_stepper
+                self.optimizer.step()
+                self._train_stepper
 
-                self.visualizer.update_lr(self.scheduler.get_last_lr()[0], self.step)
-        except:
-            traceback.print_exc()
+            self.visualizer.update_lr(self.scheduler.get_last_lr()[0], self.step)
 
-    def evaluate(self, split, record_pred=False):
+
+    def evaluate(self, split: str, record_pred: bool = False) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
         self.net.eval()
         eval_loss = Loss(self.cfg["model"]["loss"])
         rand_frame = np.random.randint(len(self.loaders[split]))
-        # breakpoint()
+
         with torch.no_grad():
-            for i, data in enumerate(tqdm(self.loaders[split]), 0):
+            for i, data in enumerate(tqdm(self.loaders[split])):
                 inputs, labels = self._format_inputs(data)
-                self.optimizer.zero_grad()
-                if self.name == "maskformer":
-                    outputs = self.net(
-                        pixel_values=inputs["pixel_values"].to(self.device),
-                        pixel_mask=inputs["pixel_mask"].to(self.device),
-                        mask_labels=inputs["mask_labels"],
-                        class_labels=inputs["class_labels"],
-                    )
-                    eval_loss.set_values(outputs.loss)
-                    outputs = self._format_outputs(outputs)
-                else:
-                    if self.data_mode == "SITS":
-                        outputs = self._format_outputs(
-                            self.net(inputs[0], batch_positions=inputs[1])
-                        )
-                    else:
-                        outputs = self._format_outputs(self.net(inputs))
+                
+                outputs = self._format_outputs(
+                    self.net(inputs[0], batch_positions=inputs[1])
+                    if self.data_mode == "SITS"
+                    else self.net(inputs)
+                )
 
                 if self.loss_name == "HLoss":
                     genus_tensor, family_tensor = eval_loss.compute(outputs, labels)
@@ -175,111 +215,59 @@ class Model(BaseExperiment):
                 labels, preds = self.accelerator.gather_for_metrics(
                     (labels, torch.argmax(outputs, axis=1))
                 )
+
                 if self.loss_name == "HLoss":
                     self.evaluator.add_batch(labels[:, 0, :, :].cpu(), preds.cpu())
                     self.evaluator_genus.add_batch(labels[:, 1, :, :].cpu(), genus_tensor.cpu())
                     self.evaluator_family.add_batch(labels[:, 2, :, :].cpu(), family_tensor.cpu())
-
-                    if (
-                        self.vis_step % self.step
-                        and i == rand_frame
-                        and self.task == "Segmentation"
-                    ):
-
-                        inputs = inputs[0]
-
-                        self.visualizer.update_input_output_labels(
-                            inputs[:, 2, :, :, :],
-                            outputs,
-                            labels[:, 0, :, :],
-                            self.step,  # 2nd index is the image from September
-                        )
+                    logging_image = labels[:, 0, :, :]
                 else:
-                    #                    if self.data_mode != "SITS":
                     logging_image = labels[:, 0, :, :].cpu()
-                    #                    else:
-                    # logging_image = labels.cpu()
-
                     self.evaluator.add_batch(logging_image, preds.cpu())
 
-                    if (
-                        self.vis_step % self.step
-                        and i == rand_frame
-                        and self.task == "Segmentation"
-                    ):
+                if self.vis_step % self.step == 0 and i == rand_frame and self.task == "Segmentation":
+                    inputs = inputs[0]
+                    self.visualizer.update_input_output_labels(
+                        inputs[:, 2, :, :, :], outputs, logging_image, self.step
+                    )
 
-                        inputs = inputs[0]  # To get the first element of the tuple
-
-                        #                        print(inputs[:, 2, :, :, :].shape, outputs.shape, logging_image.shape)
-                        self.visualizer.update_input_output_labels(
-                            inputs[:, 2, :, :, :], outputs, logging_image, self.step
-                        )
-
-                if record_pred:
-                    if self.task in ("Regression", "MultiRegression"):
-                        # TODO: external function, implementation other tasks
-                        expe_name = "predictions_" + Path(self.cfg["paths"]["dir"]).name
-                        pred_path = self.paths["temp"] / expe_name
-                        pred_path.mkdir(parents=True, exist_ok=True)
-                        pred_name = "pred_iter_{}.npy".format(i)
-                        label_name = "label_iter_{}.npy".format(i)
-                        np.save(pred_path / pred_name, outputs.cpu().numpy())
-                        np.save(pred_path / label_name, labels.cpu().numpy())
-                    else:
-                        raise Exception(
-                            "Record prediction is not implemented yet for task {}.".format(
-                                self.task
-                            )
-                        )
         metrics_species = self.evaluator.get_metrics()
-        if self.loss_name == "HLoss":
-            metrics_genus = self.evaluator_genus.get_metrics()
-            metrics_family = self.evaluator_family.get_metrics()
-
-        # confusion_matrix = self.evaluator.plot_confusion_matrix()
-        # if self.vis_step % self.step:
-        # self.visualizer.update_confusion_matrix(confusion_matrix, self.step)
+        metrics_genus = self.evaluator_genus.get_metrics() if self.loss_name == "HLoss" else None
+        metrics_family = self.evaluator_family.get_metrics() if self.loss_name == "HLoss" else None
 
         self._save(metrics_species, split)
-        if self.task == "Segmentation":
-            self.accelerator.print(
-                "Performances on the {} set: loss={}, accuracy={}, "
-                "recall={}, dice={}".format(
-                    split,
-                    round(eval_loss.running_value, 4),
-                    round(metrics_species["Accuracy"][0], 4),
-                    round(metrics_species["Recall"][0], 4),
-                    round(metrics_species["Dice"][0], 4),
-                )
-            )
-        elif self.task in ("Regression", "MultiRegression"):
-            self.accelerator.print(
-                "Performances on the {} set: loss={}, mse={}".format(
-                    split,
-                    round(eval_loss.running_value, 4),
-                    round(metrics_species["MSE"][0], 4),
-                )
-            )
 
-        if self.loss_name == "HLoss":
-            self.visualizer.update_losses(
-                split, eval_loss.running_value, eval_loss.running_hloss_values, self.step
-            )
-        else:
-            self.visualizer.update_losses(
-                split, eval_loss.running_value, eval_loss.running_values, self.step
-            )
+        self.accelerator.print(
+            f"Performances on the {split} set: "
+            f"loss={eval_loss.running_value:.4f}, "
+            f"accuracy={metrics_species['Accuracy'][0]:.4f}, "
+            f"recall={metrics_species['Recall'][0]:.4f}, "
+            f"dice={metrics_species['Dice'][0]:.4f}"
+        )
 
-        eval_loss.reset
-        self.evaluator.reset
+        self.visualizer.update_losses(
+            split,
+            eval_loss.running_value,
+            eval_loss.running_hloss_values if self.loss_name == "HLoss" else eval_loss.running_values,
+            self.step
+        )
+
+        eval_loss.reset()
+        self.evaluator.reset()
         self.net.train()
-        if self.loss_name == "HLoss":
-            return metrics_species, metrics_genus, metrics_family
-        else:
-            return metrics_species, None, None
 
-    def get_predictions(self, ckpt_path, save_path):
+        return metrics_species, metrics_genus, metrics_family if self.loss_name == "HLoss" else (metrics_species, None, None)
 
+
+    def get_predictions(self, ckpt_path: str, save_path: str) -> None:
+        """
+        Generate and save predictions using a checkpoint.
+
+        Args:
+            ckpt_path (str): Path to the checkpoint file.
+            save_path (str): Directory to save the predictions.
+        """
+        # Load checkpoint
         if os.path.isfile(ckpt_path):
             self.net.load_state_dict(torch.load(ckpt_path))
         else:
@@ -288,85 +276,67 @@ class Model(BaseExperiment):
 
         save_index = 0
 
+        # Create output directories
+        for subdir in ["inputs", "labels", "outputs"]:
+            os.makedirs(os.path.join(save_path, subdir), exist_ok=True)
+
         with torch.no_grad():
-            for i, data in enumerate(tqdm(self.loaders["test"]), 0):
+            for data in tqdm(self.loaders["test"], desc="Generating predictions"):
                 inputs, labels = self._format_inputs(data)
-                self.optimizer.zero_grad()
+                
+                # Forward pass
                 if self.data_mode == "SITS":
                     outputs = self._format_outputs(self.net(inputs[0], batch_positions=inputs[1]))
                 else:
                     outputs = self._format_outputs(self.net(inputs))
 
-                if self.name == "processor_unet" or self.name == "processor_deeplab":
-                    inputs = inputs[0][:, :, 2, :, :]
-                #                print(inputs[0].shape, outputs.shape, labels.shape)
                 # Taking the second index for September 2nd
+                if self.name in ["processor_unet", "processor_deeplab"]:
+                    inputs = inputs[0][:, :, 2, :, :]
                 else:
                     inputs = inputs[0][:, 2, :, :, :]
+                
                 labels = labels[:, 0, :, :]  # Taking the species class labels
                 outputs = torch.argmax(outputs, dim=1)
 
-                # Create dirs
-                inputs_path = os.path.join(save_path, "inputs")
-                labels_path = os.path.join(save_path, "labels")
-                outputs_path = os.path.join(save_path, "outputs")
-
-                # Make directories
-                # Add check for path if it doesn't exist
-                if not os.path.exists(inputs_path):
-                    os.mkdir(inputs_path)
-                if not os.path.exists(labels_path):
-                    os.mkdir(labels_path)
-                if not os.path.exists(outputs_path):
-                    os.mkdir(outputs_path)
-
                 self.save_predictions(inputs, labels, outputs, save_path, save_index)
-                save_index = save_index + self.batch_size
+                save_index += self.batch_size
 
-    def save_predictions(self, inputs, labels, outputs, save_path, save_index):
+    def save_predictions(self, inputs: torch.Tensor, labels: torch.Tensor, outputs: torch.Tensor, save_path: str, save_index: int) -> None:
+        """
+        Save input images, ground truth labels, and prediction outputs as PNG files.
 
+        Args:
+            inputs (torch.Tensor): Input tensor of shape (batch_size, channels, height, width)
+            labels (torch.Tensor): Ground truth labels tensor
+            outputs (torch.Tensor): Prediction outputs tensor
+            save_path (str): Base path to save the images
+            save_index (int): Starting index for saved images
+        """
         inputs_path = os.path.join(save_path, "inputs")
         labels_path = os.path.join(save_path, "labels")
         outputs_path = os.path.join(save_path, "outputs")
 
-        # Create means
-        means = torch.tensor([0.485, 0.456, 0.406])
-        stds = torch.tensor([0.229, 0.224, 0.225])
-
-        # Reshape to image size
-        means = means.view(3, 1, 1)
-        stds = stds.view(3, 1, 1)
-
-        means = means.numpy()
-        stds = stds.numpy()
+        means = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).numpy()
+        stds = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).numpy()
 
         for i in range(inputs.shape[0]):
-            inputs_idx = inputs[i]
-            labels_idx = labels[i]
-            outputs_idx = outputs[i]
-            #           print("Here")
+            input_img = inputs[i].cpu().detach().numpy()
+            label_img = labels[i].cpu().detach().numpy()
+            output_img = outputs[i].cpu().detach().numpy()
 
-            labels_idx = labels_idx.cpu().detach().numpy()
-            outputs_idx = outputs_idx.cpu().detach().numpy()
-
-            # Convert tensor back to image
-            inputs_idx = inputs_idx.cpu().detach().numpy()
-            inv_array = inputs_idx * stds + means
-            # C, H, W -> H, W, C
+            # Convert input tensor back to image
+            inv_array = input_img * stds + means
             inv_array = np.transpose(inv_array, (1, 2, 0))
+            inv_array = np.clip(inv_array * 255, 0, 255).astype(np.uint8)
 
-            inv_array = np.clip(inv_array, 0, 1)
-
-            inv_array = (inv_array * 255).astype(np.uint8)
-
-            #           print("here")
             image_out = Image.fromarray(inv_array)
-            gt_out = Image.fromarray(map_to_colors(labels_idx.astype("uint8")))
-            preds_out = Image.fromarray(map_to_colors(outputs_idx.astype("uint8")))
+            gt_out = Image.fromarray(map_to_colors(label_img.astype(np.uint8)))
+            preds_out = Image.fromarray(map_to_colors(output_img.astype(np.uint8)))
 
-            image_out.save(os.path.join(inputs_path, str(save_index + i) + ".png"))
-            gt_out.save(os.path.join(labels_path, str(save_index + i) + ".png"))
-            preds_out.save(os.path.join(outputs_path, str(save_index + i) + ".png"))
+            image_out.save(os.path.join(inputs_path, f"{save_index + i}.png"))
+            gt_out.save(os.path.join(labels_path, f"{save_index + i}.png"))
+            preds_out.save(os.path.join(outputs_path, f"{save_index + i}.png"))
 
     @property
     def _train_stepper(self):
@@ -399,19 +369,9 @@ class Model(BaseExperiment):
                         eval_criteria = (
                             val_metrics_species[self.selection_metric][0] > self._best_eval_metric
                         )
-                    elif self.task in ("Regression", "MultiRegression"):
-                        eval_criteria = (
-                            val_metrics_species[self.selection_metric][0] < self._best_eval_metric
-                        )
                     else:
                         raise Exception("Task {} is not supported.".format(self.task))
-                    # if eval_criteria:
-                    #                    self.accelerator.save_state(
-                    #                        Path(self.cfg["paths"]["checkpoint_dir"])
-                    #                        / "checkpoint_iter_{}.pt".format(str(self.step).zfill(8)),
-                    #                    )
-                    #                    print(Path(self.cfg["paths"]["checkpoint_dir"])
-                    #                        / "checkpoint_iter_{}.pt".format(str(self.step).zfill(8)))
+    
                     torch.save(
                         self.net.state_dict(),
                         Path(self.cfg["paths"]["checkpoint_dir"])
@@ -436,13 +396,7 @@ class Model(BaseExperiment):
                         self.visualizer.update_metrics(
                             "test_family", test_metrics_family, self.step
                         )
-                # else:
-                #     # Don't specify the selection metric to get recurrent checkpoints
-                #     self.accelerator.save_state(
-                #         Path(self.cfg["paths"]["checkpoint_dir"])
-                #         / "checkpoint_iter_{}.pt".format(str(self.step).zfill(8)),
-                #     )
-
+         
     def _build_optim(self):
         optim_name = self.cfg["model"]["optim"]
         if optim_name == "SGD":
@@ -489,33 +443,14 @@ class Model(BaseExperiment):
 
                 labels = labels.to(self.device).long()
 
-            #                if self.name == "processor":
-            #                    image = image.permute(0, 2, 1, 3, 4)
-            #                    print(image.shape)
-            # print(type(image), type(dates), type(labels))
             else:
                 inputs, labels = data["image"], data["label"]
                 labels = labels.to(self.device).long()
                 inputs = inputs.to(self.device).float()
-        elif self.task in ("Regression", "MultiRegression"):
-            inputs, labels = data["data"], data["labels"]
-            labels = labels.to(self.device).float()
-            inputs = inputs.to(self.device).float()
         else:
             inputs, labels = data
             labels = labels.to(self.device)
             inputs = inputs.to(self.device).float()
-
-        # inputs = inputs.to(self.device).float()
-
-        if self.name == "maskformer":
-            preproc_input = list(inputs.cpu())
-            preproc_label = list(labels.cpu())
-            inputs = self.feature_extractor(
-                preproc_input, segmentation_maps=preproc_label, return_tensors="pt"
-            )
-            inputs["mask_labels"] = torch.stack(inputs["mask_labels"]).to(self.device)
-            inputs["class_labels"] = torch.stack(inputs["class_labels"]).to(self.device)
 
         return inputs, labels
 
@@ -536,19 +471,6 @@ class Model(BaseExperiment):
             outputs = outputs
         elif self.name in ("mlp3", "toymodel", "spec1dconv"):
             outputs = outputs
-        elif self.name == "maskformer":
-            # [batch_size, num_queries, num_classes+1]
-            class_queries_logits = outputs.class_queries_logits
-            # [batch_size, num_queries, height, width]
-            masks_queries_logits = outputs.masks_queries_logits
-            # Remove the null class `[..., :-1]`
-            masks_classes = class_queries_logits.softmax(dim=-1)[..., :-1]
-            masks_probs = masks_queries_logits.sigmoid()  # [batch_size, num_queries, height, width]
-            # Semantic segmentation logits of shape (batch_size, num_classes, height, width)
-            segmentation = torch.einsum("bqc, bqhw -> bchw", masks_classes, masks_probs)
-            outputs = torch.nn.functional.interpolate(
-                segmentation, size=self.d_sizes, mode="bilinear", align_corners=False
-            )
         else:
             raise Exception(
                 "Output formatting is not supported yet for model {}.".format(self.name)
