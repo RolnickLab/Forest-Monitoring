@@ -12,22 +12,7 @@ from treemonitoring.models.pastis_model_utils import get_model
 
 def train_model(arch: str, n_class: int) -> None:
     try:
-        if arch == "deeplabv3resnet50":
-            deeplabv3 = deeplabv3_resnet50(
-                weights_backbone="IMAGENET1K_V2", progress=True, num_classes=n_class
-            )
-            Model(deeplabv3).train()
-        elif arch == "deeplabv3resnet101":
-            deeplabv3 = deeplabv3_resnet101(
-                weights_backbone="IMAGENET1K_V2", progress=True, num_classes=n_class
-            )
-            Model(deeplabv3).train()
-        elif arch == "unetresnet50":
-            unet = smp.Unet(
-                encoder_name="resnet50", encoder_weights="imagenet", in_channels=3, classes=n_class
-            )
-            Model(unet).train()
-        elif arch == "processor_unet":
+        if arch == "processor_unet":
             model = ProcessorUnet(n_class)
             Model(model).train()
         elif arch == "processor_deeplab":
@@ -38,7 +23,7 @@ def train_model(arch: str, n_class: int) -> None:
             Model(model).train()
     except Exception as e:
         print(e)
-        # raise Exception("Architecture {} is not yet supported.".format(arch))
+        raise Exception("Architecture {} is not yet supported.".format(arch))
 
 
 def _load_cfg(cfg_path):

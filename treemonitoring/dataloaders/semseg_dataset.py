@@ -20,9 +20,7 @@ class SemsegDataset(Dataset):
         self.transformations = None
         self.dataset_path = Paths().get()["quebectrees"]
         self.base_size = 768
-        # Change this to load from folders and using glob instead of csv.
-        # Add the tile stiching function here to stich images
-        #        self.file_name = split + "_" + str(mode) + "_" + str(self.base_size) + ".csv"
+        
         self.cv_version = cv
         if mode == "train":
             self.file_name = (

@@ -20,13 +20,9 @@ class CustomDataloaders:
         self.cv = self.cfg["dataset"]["cv"]
         self.num_classes = self.cfg["dataset"]["n_classes"]
 
-        # Pastis dataset configs (Can be added to model config file)
         self.dataset_folder = self.cfg["dataset"]["dataset_path"]
 
-        if self.dataset_name == "pastis":
-            self.ref_date = self.cfg["dataset"]["ref_date"]
         # self.mono_date = self.cfg["dataset"]["mono_date"]
-        self.fold_sequence = fold_sequence = [[1, 2, 3], [4], [5]]
         self.pad_value = 0
 
         # Build loaders and sets
@@ -35,24 +31,7 @@ class CustomDataloaders:
         self.loss_weights = self._loss_weights()
 
     def _build_sets(self, dataset_name):
-        if dataset_name == "pastis":
-
-            dt_args = dict(
-                folder=self.dataset_folder,
-                norm=True,
-                reference_date=self.ref_date,
-                # mono_date=self.mono_date,
-                target="semantic",
-                sats=["S2"],
-            )
-
-            sets = {
-                "train": PASTIS_Dataset(**dt_args, folds=self.fold_sequence[0]),
-                "val": PASTIS_Dataset(**dt_args, folds=self.fold_sequence[1]),
-                "test": PASTIS_Dataset(**dt_args, folds=self.fold_sequence[2]),
-            }
-
-        elif dataset_name == "quebectrees":
+        if dataset_name == "quebectrees":
             sets = {
                 "train": ImageTimeSeriesDataset("pretiled", "train", self.final_size, self.cv),
                 "val": ImageTimeSeriesDataset("pretiled", "val", self.final_size, self.cv),
@@ -93,44 +72,6 @@ class CustomDataloaders:
                 )
             else:
                 loaders["test"] = None
-
-        elif dataset_name == "pastis":
-
-            def collate(x):
-                return pad_collate(x, pad_value=self.pad_value)
-
-            loaders["train"] = DataLoader(
-                self.sets["train"],
-                batch_size=self.batch_size,
-                shuffle=self.shuffle,
-                num_workers=self.n_workers,
-                drop_last=True,
-                collate_fn=collate,
-            )
-            if "val" in splits:
-                loaders["val"] = DataLoader(
-                    self.sets["val"],
-                    batch_size=self.batch_size,
-                    shuffle=False,
-                    num_workers=self.n_workers,
-                    drop_last=True,
-                    collate_fn=collate,
-                )
-            else:
-                loaders["val"] = None
-
-            if "test" in splits:
-                loaders["test"] = DataLoader(
-                    self.sets["test"],
-                    batch_size=self.batch_size,
-                    shuffle=False,
-                    num_workers=self.n_workers,
-                    drop_last=True,
-                    collate_fn=collate,
-                )
-            else:
-                loaders["test"] = None
-
         else:
             raise ValueError("Dataset not supported")
 

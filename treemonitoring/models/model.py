@@ -62,7 +62,6 @@ class Model(BaseExperiment):
     def _init_model_and_loss(self) -> None:
         self.loss: Loss = Loss(loss_name=self.cfg["model"]["loss"])
         self.loss_name: str = self.cfg["model"]["loss"]
-        self.d_sizes: Tuple[int, int] = (self.cfg["dataset"]["w_size"], self.cfg["dataset"]["h_size"])
         self.name: str = self.cfg["model"]["name"]
 
         # Log model parameters
@@ -118,6 +117,8 @@ class Model(BaseExperiment):
         self.evaluator_family: Evaluator = Evaluator(
             self.cfg["experiment"]["eval_metrics_family"], self.task, self.n_classes_family
         )
+
+
     def train(self) -> None:
         epoch_iterator = range(self.epoch, self.n_epochs)
         for epoch in epoch_iterator:
@@ -410,14 +411,6 @@ class Model(BaseExperiment):
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.uniform_(m.weight, 0.0, 1.0)
                 nn.init.constant_(m.bias, 0.0)
-
-    def recursive_todevice(self, x, device):
-        if isinstance(x, torch.Tensor):
-            return x.to(device)
-        elif isinstance(x, dict):
-            return {k: self.recursive_todevice(v, device) for k, v in x.items()}
-        else:
-            return [self.recursive_todevice(c, device) for c in x]
 
     def _format_inputs(self, data):
         if self.task == "Segmentation":

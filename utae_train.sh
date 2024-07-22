@@ -12,4 +12,4 @@
 module add python/3.9
 source "$HOME/bio/bin/activate"
 
-python treemonitoring/models/trainer.py --cfg /home/mila/v/venkatesh.ramesh/scratch/Tree-Monitoring/treemonitoring/models/configs/quebectrees_utae_99.yaml  #--debug
+python treemonitoring/models/trainer.py --cfg /home/mila/v/venkatesh.ramesh/scratch/Tree-Monitoring/treemonitoring/models/configs/quebectrees_utae_7.yaml  #--debug

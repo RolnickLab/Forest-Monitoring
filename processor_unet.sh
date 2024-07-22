@@ -12,5 +12,5 @@
 module add python/3.9
 source "$HOME/bio/bin/activate"
 
-python treemonitoring/models/trainer.py --cfg /home/mila/v/venkatesh.ramesh/scratch/Tree-Monitoring/treemonitoring/models/configs/processor_unet_42.yaml #--debug
+python treemonitoring/models/trainer.py --cfg /home/mila/v/venkatesh.ramesh/scratch/Tree-Monitoring/treemonitoring/models/configs/processor_unet_7.yaml #--debug
 #python treemonitoring/models/tester.py --cfg /home/mila/v/venkatesh.ramesh/scratch/Tree-Monitoring/treemonitoring/models/configs/processor_unet.yaml --ckp --savepath ~/scratch/images_test/outputs --debug

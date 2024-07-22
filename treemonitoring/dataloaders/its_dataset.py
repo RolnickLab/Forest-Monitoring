@@ -22,9 +22,7 @@ class ImageTimeSeriesDataset(Dataset):
         self.transformations = None
         self.dataset_path = Paths().get()["quebectrees"]
         self.base_size = 768
-        # Change this to load from folders and using glob instead of csv.
-        # Add the tile stiching function here to stich images
-        #        self.file_name = split + "_" + str(mode) + "_" + str(self.base_size) + ".csv"
+        
         self.cv_version = cv
         if mode == "train":
             self.file_name = "/home/mila/v/venkatesh.ramesh/scratch/tree_data/splits/image_time_series/train_768.csv"
@@ -103,7 +101,7 @@ class ImageTimeSeriesDataset(Dataset):
 
         mask_array = np.array(mask)
 
-        # Hacking fix for the LALA higher-level taxon.
+        # Hacky fix for the LALA higher-level taxon.
         # Need to re-create the dataset channel.
         # Get the 3rd channel of the mask array
         channel_3 = mask_array[:, :, 2]
@@ -169,18 +167,7 @@ class ImageTimeSeriesDataset(Dataset):
         tensor_oct = tensor_oct.unsqueeze(0)
 
         #        tensor_concat = torch.cat((tensor_may, tensor_july, tensor_aug, tensor_oct), dim=0)
-        tensor_concat = torch.cat(
-            (
-                #                tensor_may,
-                tensor_june,
-                #                tensor_july,
-                #                tensor_aug,
-                tensor_sept2,
-                tensor_sept28,
-                tensor_oct,
-            ),
-            dim=0,
-        )
+        tensor_concat = torch.cat((tensor_june, tensor_sept2, tensor_sept28, tensor_oct,), dim=0)
 
         # Adding this line for compatibility with processor
         # TO-DO: Comment this line for UTAE & Unet3d
@@ -189,9 +176,9 @@ class ImageTimeSeriesDataset(Dataset):
         #        print(tensor_concat.shape)
         # Changing dates to 4 dates
         #        dates = torch.tensor([0, 21, 55, 83, 98, 124, 133])
-        dates = torch.tensor([0, 77, 103, 112])
+        dates = torch.tensor([0, 77, 103, 112]) # Calculated manually from the start date.
 
-        label_species = sample_sept2["label"]  # [0, :, :]
+        label_species = sample_sept2["label"] 
 
         sample = {"image": tensor_concat, "label": label_species, "dates": dates}
 

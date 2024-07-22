@@ -57,7 +57,7 @@ class Hierarchical_Loss(nn.Module):
             + genus_tensor[:, 4, :, :]
             + genus_tensor[:, 9, :, :]
         )
-#        palm_fa = genus_tensor[:, 5, :, :]
+#        palm_fa = genus_tensor[:, 5, :, :] # Wrong higher-level label.
         dead_fa = genus_tensor[:, 6, :, :]
 
         family_tensor_list = [background, conifer_fa, nonconifera_fa, dead_fa] # Removing palm_fa
@@ -109,7 +109,6 @@ class Hierarchical_Loss(nn.Module):
 
         # Doing torch.log on the softmax probabilities instead of using logsoftmax for
         # metric calculation using the genus and family tensors.
-        #        print(target[:, 0, :, :].type(), species_tensor.type())
         sp_loss_tensor = self.w1 * self.sp_loss(
             torch.log(species_tensor + self.epsilon), target[:, 0, :, :]
         )
