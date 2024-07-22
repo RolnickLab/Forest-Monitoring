@@ -1,0 +1,49 @@
+experiment:
+  name: "treesegmentation"
+  n_epochs: 500
+  batch_size: 16
+  device: "cuda"
+  torch_seed: 7 #42 #99 #42
+  numpy_seed: 7 #42 #99 #42
+  version: 0
+  n_workers: 4
+  eval_metrics: "Accuracy/Recall/Dice"
+  eval_metrics_genus: "Dice"
+  eval_metrics_family: "Dice"
+  selection_metric: "Dice"
+
+dataset:
+  name: "quebectrees"
+  w_size: 768
+  h_size: 768
+  final_size: 768
+  shuffle: True
+  task: "Segmentation"
+  data_mode: "SITS"
+  n_classes: 16
+  dataset_path: "/home/mila/v/venkatesh.ramesh/scratch/pastis_dataset/PASTIS"
+  ref_date: "2018-09-01"
+  mono_date: None
+  n_classes_genus: 12
+  n_classes_family: 5
+  time_dim: null
+  cv: "3"
+
+model:
+  name: "processor_unet"
+  loss: "DiceCE"
+  lr: 0.0001
+  lr_step: 1000
+  optim: "Adam"
+
+log_steps:
+  loss: 50
+  val: 200
+  visualization: 100
+  checkpoint: 500
+
+base_exp: "quebectrees_experiment_unet3d"
+comments: "ITS on the quebectrees with dice loss."
+
+wandb:
+  tags: ["processor_unet", "DiceCE", "15_classes", "semseg", "quebectrees", "fixed_family", "no_pretrained"]

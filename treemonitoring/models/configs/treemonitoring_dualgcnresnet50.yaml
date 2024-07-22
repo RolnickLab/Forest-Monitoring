@@ -1,0 +1,45 @@
+experiment:
+  name: "treesegmentation"
+  n_epochs: 400
+  batch_size: 8
+  device: "cuda"
+  torch_seed: 42 #7
+  numpy_seed: 42 #7
+  version: 0
+  n_workers: 4
+  eval_metrics: "Accuracy/Recall/Dice"
+  eval_metrics_genus: "Dice"
+  eval_metrics_family: "Dice"
+  selection_metric: "Dice"
+
+dataset:
+  name: "quebectrees"
+  w_size: 768
+  h_size: 768
+  final_size: 768
+  shuffle: True
+  task: "Segmentation"
+  n_classes: 16
+  n_classes_genus: 12
+  n_classes_family: 5
+  time_dim: null
+  cv: "3"
+
+model:
+  name: "dualgcnresnet50"
+  loss: "DiceCE"
+  lr: 0.0003
+  lr_step: 1000
+  optim: "Adam"
+
+log_steps:
+  loss: 50
+  val: 200
+  visualization: 100
+  checkpoint: 500
+
+base_exp: "distributed_config_onlymyriam_classes"
+comments: "Sp loss + 0.3*Genus loss + 0.1*Family loss with newer version of dataset."
+
+wandb:
+  tags: ["dualgcn", "hloss", "15_classes", "semseg", "three_level_metrics", "ignore_acer_genus"]
