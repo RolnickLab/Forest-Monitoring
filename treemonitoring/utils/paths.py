@@ -26,13 +26,13 @@ class Paths(Configurable):
         self.paths["logs"] = os.path.join(MILA_HOME, Path(self.scratch["logs"]))
 
         # storage
-        self.paths["datasets"] = os.path.join(MILA_HOME, Path(self.scratch["datasets"]))
-        self.paths["archive"] = os.path.join(MILA_HOME, Path(self.scratch["archive"]))
+        self.paths["datasets"] = os.path.join(MILA_HOME, Path(self.storage["datasets"]))
+        self.paths["archive"] = os.path.join(MILA_HOME, Path(self.storage["archive"]))
 
         # datasets
-        self.paths["quebectrees"] = os.path.join(MILA_HOME, Path(self.scratch["quebectrees"]))
-        self.paths["images_dir"] = os.path.join(MILA_HOME, Path(self.scratch["images_dir"]))
-        self.paths["class_weights"] = os.path.join(MILA_HOME, Path(self.scratch["class_weights"]))
+        self.paths["quebectrees"] = os.path.join(MILA_HOME, Path(self.storage["quebectrees"]))
+        self.paths["images_dir"] = os.path.join(MILA_HOME, Path(self.storage["images_dir"]))
+        self.paths["class_weights"] = os.path.join(MILA_HOME, Path(self.storage["class_weights"]))
 
     def get(self):
         return self.paths
