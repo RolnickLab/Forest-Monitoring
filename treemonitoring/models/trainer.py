@@ -6,10 +6,8 @@ import yaml
 from processor import ProcessorDeeplabV3Plus, ProcessorUnet
 from torchvision.models.segmentation import deeplabv3_resnet50, deeplabv3_resnet101
 
-from treemonitoring.models.dualgcn import DualSeg_res50
 from treemonitoring.models.model import Model
 from treemonitoring.models.pastis_model_utils import get_model
-from treemonitoring.models.TSViT import TSViT
 
 
 def train_model(arch: str, n_class: int) -> None:
@@ -29,31 +27,6 @@ def train_model(arch: str, n_class: int) -> None:
                 encoder_name="resnet50", encoder_weights="imagenet", in_channels=3, classes=n_class
             )
             Model(unet).train()
-        elif arch == "dualgcnresnet50":
-            dualgcn = DualSeg_res50(num_classes=n_class)
-            Model(dualgcn).train()
-        elif arch == "tsvit":
-            model_config = {
-                "img_res": res,
-                "patch_size": 3,
-                "patch_size_time": 1,
-                "patch_time": 4,
-                "num_classes": n_class,
-                "max_seq_len": 16,
-                "dim": 128,
-                "temporal_depth": 6,
-                "spatial_depth": 2,
-                "heads": 4,
-                "pool": "cls",
-                "num_channels": 3,
-                "dim_head": 64,
-                "dropout": 0.0,
-                "emb_dropout": 0.0,
-                "scale_dim": 4,
-                "depth": 4,
-            }
-
-            tsvit = TSViT(model_config).cuda()
         elif arch == "processor_unet":
             model = ProcessorUnet(n_class)
             Model(model).train()
