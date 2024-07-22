@@ -1,26 +1,3 @@
-"""Class to train a PyTorch model."""
-from pathlib import Path
-import json
-import os
-import traceback
-from typing import Dict, Tuple, Any, Optional, Union, List
-
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from accelerate import Accelerator
-from PIL import Image
-from torch.optim.lr_scheduler import ExponentialLR
-from tqdm import tqdm
-
-from treemonitoring.models.base import BaseExperiment
-from treemonitoring.utils.loss import Loss
-from treemonitoring.utils.metrics import Evaluator
-from treemonitoring.utils.utils import map_to_colors
-from treemonitoring.utils.visualizer import WandbVisualizer
-
-
 """
 Model class for training and evaluating PyTorch models for tree monitoring.
 
@@ -91,6 +68,7 @@ class Model(BaseExperiment):
     def _setup_model(self) -> None:
         """Set up the model, optimizer, and scheduler."""
         self.net.to(self.device)
+        self.name = self.cfg["model"]["name"]
         self._build_optim()
         self.lr_step = self.cfg["model"]["lr_step"]
 
