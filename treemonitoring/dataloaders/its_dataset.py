@@ -24,20 +24,8 @@ class ImageTimeSeriesDataset(Dataset):
         self.split = split
         self.mode = mode
         self.transformations = None
-        #self.dataset_path = Paths().get()["quebectrees"]
         self.dataset_path = TREE_DATA_DIR
         self.base_size = 768
-        
-#        self.cv_version = cv
-#        if mode == "train":
-#            self.file_name = os.path.join(self.dataset_path, 'train_768.csv')        
-#        elif mode == "val":
-#            self.file_name = self.file_name = os.path.join(self.dataset_path, 'val_768.csv') 
-#        else:
-#            self.file_name = os.path.join(self.dataset_path, 'test_768.csv') 
-#
-#        self.dataset = pd.read_csv(os.path.join(self.dataset_path, "splits", self.file_name))
-#        print(os.path.join(self.dataset_path, "splits", self.file_name))
 
         if mode == "train":
             self.file_name = 'train_768.csv'
@@ -87,28 +75,6 @@ class ImageTimeSeriesDataset(Dataset):
                     tr.ToTensor(),
                 ]
             )
-
-#    def __getitem__(self, idx: int) -> (Dict[str, torch.Tensor]):
-#        img_path_may = self.dataset.iloc[idx]["tiles_may"]
-#        img_path_june = self.dataset.iloc[idx]["tiles_june"]
-#        img_path_july = self.dataset.iloc[idx]["tiles_july"]
-#        img_path_aug = self.dataset.iloc[idx]["tiles_august"]
-#        img_path_sept2 = self.dataset.iloc[idx]["tiles_main"]
-#        img_path_sept28 = self.dataset.iloc[idx]["tiles_september"]
-#        img_path_oct = self.dataset.iloc[idx]["tiles_october"]
-#        mask_path = self.dataset.iloc[idx]["labels"]
-
-        # img = stich_tile(img_path, self.final_size, False)
-        # mask = stich_tile(mask_path, self.final_size, True)
-
-#        img_may = Image.open(img_path_may)
-#        img_june = Image.open(img_path_june)
-#        img_july = Image.open(img_path_july)
-#        img_aug = Image.open(img_path_aug)
-#        img_sept2 = Image.open(img_path_sept2)
-#        img_sept28 = Image.open(img_path_sept28)
-#        img_oct = Image.open(img_path_oct)
-#        mask = Image.open(mask_path)
 
     def __getitem__(self, idx: int) -> (Dict[str, torch.Tensor]):
         img_path_may = TREE_DATA_DIR / self.dataset.iloc[idx]["tiles_may"]
@@ -174,7 +140,6 @@ class ImageTimeSeriesDataset(Dataset):
             sample_sept28 = self.transform_val(sample_sept28)
             sample_oct = self.transform_val(sample_oct)
 
-        #        print('Tensor', torch.unique(sample["label"]))
         tensor_may = sample_may["image"]
         tensor_may = tensor_may.unsqueeze(0)
 
@@ -220,14 +185,6 @@ class ImageTimeSeriesDataset(Dataset):
         class_names = {v: k for k, v in names_class.items()}
         class_names[0] = "Background"
         return class_names
-
-#    def _load_class_names(self):
-#        classes_path = self.dataset_path / "classes_onlymyriam_augmented.json"
-#        with open(classes_path, "r") as fp:
-#            names_class = json.load(fp)
-#        class_names = {v: k for k, v in names_class.items()}
-#        class_names[0] = "Background"
-#        return class_names
 
     @property
     def get_names(self):
