@@ -21,7 +21,7 @@ dataset:
   task: "Segmentation"
   data_mode: "SITS"
   n_classes: 16
-  dataset_path: "/home/mila/v/venkatesh.ramesh/scratch/pastis_dataset/PASTIS"
+  dataset_path: "unused_path"
   ref_date: "2018-09-01"
   mono_date: None
   n_classes_genus: 12
@@ -31,7 +31,7 @@ dataset:
 
 model:
   name: "processor_unet"
-  loss: "DiceCE"
+  loss: "HLoss"
   lr: 0.0001
   lr_step: 1000
   optim: "Adam"
@@ -42,8 +42,8 @@ log_steps:
   visualization: 100
   checkpoint: 500
 
-base_exp: "quebectrees_experiment_unet3d"
+base_exp: "quebectrees_experiment_processor_unet"
 comments: "ITS on the quebectrees with dice loss."
 
 wandb:
-  tags: ["processor_unet", "DiceCE", "15_classes", "semseg", "quebectrees", "fixed_family", "no_pretrained"]
+  tags: ["processor_unet", "HLoss", "15_classes", "semseg", "quebectrees"]

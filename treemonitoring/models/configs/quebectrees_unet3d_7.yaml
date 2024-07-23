@@ -21,7 +21,7 @@ dataset:
   task: "Segmentation"
   data_mode: "SITS"
   n_classes: 16
-  dataset_path: "/home/mila/v/venkatesh.ramesh/scratch/pastis_dataset/PASTIS"
+  dataset_path: "unused_path"
   ref_date: "2018-09-01"
   mono_date: None
   n_classes_genus: 12
