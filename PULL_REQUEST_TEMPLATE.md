@@ -1,4 +1,0 @@
-Tasks:
-
-- [ ] Testing
-- [ ] Documentation
