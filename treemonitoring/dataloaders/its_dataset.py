@@ -162,7 +162,6 @@ class ImageTimeSeriesDataset(Dataset):
         tensor_oct = tensor_oct.unsqueeze(0)
 
         tensor_concat = torch.cat((tensor_june, tensor_sept2, tensor_sept28, tensor_oct,), dim=0)
-        #        print(tensor_concat.shape)
         dates = torch.tensor([0, 77, 103, 112]) # Calculated manually from the start date.
 
         label_species = sample_sept2["label"] 
