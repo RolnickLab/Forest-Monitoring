@@ -25,11 +25,11 @@ class ImageTimeSeriesDataset(Dataset):
         
         self.cv_version = cv
         if mode == "train":
-            self.file_name = os.path.join(self.dataset_path, 'train_ts_768.csv')        
+            self.file_name = os.path.join(self.dataset_path, 'train_768.csv')        
         elif mode == "val":
-            self.file_name = self.file_name = os.path.join(self.dataset_path, 'val_ts_768.csv') 
+            self.file_name = self.file_name = os.path.join(self.dataset_path, 'val_768.csv') 
         else:
-            self.file_name = os.path.join(self.dataset_path, 'test_ts_768.csv') 
+            self.file_name = os.path.join(self.dataset_path, 'test_768.csv') 
 
         self.dataset = pd.read_csv(os.path.join(self.dataset_path, "splits", self.file_name))
         print(os.path.join(self.dataset_path, "splits", self.file_name))
