@@ -25,11 +25,11 @@ class ImageTimeSeriesDataset(Dataset):
         
         self.cv_version = cv
         if mode == "train":
-            self.file_name = "/home/mila/v/venkatesh.ramesh/scratch/tree_data/splits/image_time_series/train_768.csv"
+            self.file_name = os.path.join(self.dataset_path, 'train_ts_768.csv')        
         elif mode == "val":
-            self.file_name = "/home/mila/v/venkatesh.ramesh/scratch/tree_data/splits/image_time_series/val_768.csv"
+            self.file_name = self.file_name = os.path.join(self.dataset_path, 'val_ts_768.csv') 
         else:
-            self.file_name = "/home/mila/v/venkatesh.ramesh/scratch/tree_data/splits/image_time_series/test_768.csv"
+            self.file_name = os.path.join(self.dataset_path, 'test_ts_768.csv') 
 
         self.dataset = pd.read_csv(os.path.join(self.dataset_path, "splits", self.file_name))
         print(os.path.join(self.dataset_path, "splits", self.file_name))
@@ -67,11 +67,6 @@ class ImageTimeSeriesDataset(Dataset):
         else:
             return transforms.Compose(
                 [
-                    # tr.RandomHorizontalFlip(),
-                    # tr.RandomRotate90(),
-                    # tr.RandomGaussianBlur(),
-                    # tr.RandomBrightnessContrast(),
-                    # tr.RandomSaturation(),
                     tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
                     tr.ToTensor(),
                 ]
@@ -166,7 +161,6 @@ class ImageTimeSeriesDataset(Dataset):
         tensor_oct = sample_oct["image"]
         tensor_oct = tensor_oct.unsqueeze(0)
 
-        #        tensor_concat = torch.cat((tensor_may, tensor_july, tensor_aug, tensor_oct), dim=0)
         tensor_concat = torch.cat((tensor_june, tensor_sept2, tensor_sept28, tensor_oct,), dim=0)
 
         # Adding this line for compatibility with processor

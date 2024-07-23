@@ -23,17 +23,11 @@ class SemsegDataset(Dataset):
         
         self.cv_version = cv
         if mode == "train":
-            self.file_name = (
-                "/home/mila/v/venkatesh.ramesh/scratch/tree_data/splits/hierarchical/train_768.csv"
-            )
+            self.file_name = os.path.join(self.dataset_path, 'train_si_768.csv')        
         elif mode == "val":
-            self.file_name = (
-                "/home/mila/v/venkatesh.ramesh/scratch/tree_data/splits/hierarchical/val_768.csv"
-            )
+            self.file_name = self.file_name = os.path.join(self.dataset_path, 'val_si_768.csv') 
         else:
-            self.file_name = (
-                "/home/mila/v/venkatesh.ramesh/scratch/tree_data/splits/hierarchical/test_768.csv"
-            )
+            self.file_name = os.path.join(self.dataset_path, 'test_si_768.csv') 
 
         self.dataset = pd.read_csv(os.path.join(self.dataset_path, "splits", self.file_name))
         print(os.path.join(self.dataset_path, "splits", self.file_name))
@@ -86,9 +80,6 @@ class SemsegDataset(Dataset):
         img_path = self.dataset.iloc[idx]["tiles"]
         mask_path = self.dataset.iloc[idx]["labels"]
 
-        # img = stich_tile(img_path, self.final_size, False)
-        # mask = stich_tile(mask_path, self.final_size, True)
-
         img = Image.open(img_path)
         mask = Image.open(mask_path)
 
@@ -99,7 +90,6 @@ class SemsegDataset(Dataset):
         else:
             sample = self.transform_val(sample)
 
-        #        print('Tensor', torch.unique(sample["label"]))
         return sample
 
     def _load_class_names(self):

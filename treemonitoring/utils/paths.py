@@ -5,7 +5,6 @@ from pathlib import Path
 from treemonitoring.utils.configurable import Configurable
 
 MILA_HOME = Path(__file__).parent.parent.parent
-# MILA_HOME = "/home/mila/v/venkatesh.ramesh/scratch/Tree-Monitoring/"  # TO-DO: Find a better solution to find the config file. Path.resolve is not generalizable
 
 
 class Paths(Configurable):

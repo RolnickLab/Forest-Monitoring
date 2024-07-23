@@ -29,11 +29,9 @@ class WandbVisualizer:
         self.class_list[0] = "Background"
 
     def _wandb_init(self):
-        #        init_kwargs = {'entity':'venka97'}
         return self.accelerator.init_trackers(
             project_name=self.project_name, config=self.cfg
-        )  # , tags=self.cfg["wandb"]["tags"])
-
+        ) 
     def update_losses(self, split, global_loss, losses, step):
         self.accelerator.log({"{}_losses/global".format(split): global_loss})
         for loss_id, loss_value in losses.items():
