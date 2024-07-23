@@ -168,8 +168,6 @@ class ImageTimeSeriesDataset(Dataset):
         #        tensor_concat = tensor_concat.permute(1, 0, 2, 3)
 
         #        print(tensor_concat.shape)
-        # Changing dates to 4 dates
-        #        dates = torch.tensor([0, 21, 55, 83, 98, 124, 133])
         dates = torch.tensor([0, 77, 103, 112]) # Calculated manually from the start date.
 
         label_species = sample_sept2["label"] 
