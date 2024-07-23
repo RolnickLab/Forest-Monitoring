@@ -1,0 +1,7 @@
+# Ignore all .out files
+*.out
+
+# Ignore everything in the data/ folder
+data/
+wandb/
+**/__pycache__/
