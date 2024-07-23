@@ -3,7 +3,6 @@ from torch.utils.data import DataLoader
 from treemonitoring.dataloaders.its_dataset import ImageTimeSeriesDataset
 
 # from treemonitoring.dataloaders.semseg_dataset import SemsegDataset
-from treemonitoring.utils.pastis_dataset_utils import pad_collate
 from treemonitoring.utils.utils import calculate_label_weights
 
 
