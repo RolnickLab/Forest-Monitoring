@@ -418,7 +418,6 @@ class Model(BaseExperiment):
 
                 if self.name == "processor_unet" or self.name == "processor_deeplab":
                     image = image.permute(0, 2, 1, 3, 4) # B, T, C, H ,W
-                    print(image.shape)
                 dates = dates.to(self.device).float()
                 inputs = (image, dates)
 
