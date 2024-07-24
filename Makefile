@@ -15,7 +15,7 @@ install:
 	pip install -r requirements.txt
 
 install-dev:
-	@echo "Installing package in editable mode..."
+	@echo "Installing the treemonitoring package"
 	pip install -e .
 
 clean:
