@@ -65,7 +65,7 @@ python inference.py --model_path /path/to/saved_model --input /path/to/input_dat
 
 ## License
 
-This project is licensed under the [Choose a License] License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the [Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/legalcode) License .
 
 ## Citation
 
