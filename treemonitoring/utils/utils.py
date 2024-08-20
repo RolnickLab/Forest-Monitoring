@@ -96,10 +96,8 @@ def stich_tile(img: str, size: int, isMask: bool) -> Image:
     i_count = 0
     j_count = 0
 
-    #    image_path = str(paths["images_dir"])
     folders = img.split("/")[:-2]
     image_path = "/" + os.path.join(*folders)
-    #    image_path = image_path if isMask else image_path.replace("labels", "images")
 
     assert (
         size // base_size
@@ -115,7 +113,6 @@ def stich_tile(img: str, size: int, isMask: bool) -> Image:
                 temp_img = Image.open(
                     os.path.join(image_path, str(int(x) + i), str(int(y) + j) + ".png")
                 )
-            #                print(os.path.join(image_path, str(int(x) + i), str(int(y) + j) + ".png"))
             except:
                 temp_img = Image.new("RGB", (base_size, base_size), color=0)
 

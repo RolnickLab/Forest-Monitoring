@@ -3,8 +3,8 @@ experiment:
   n_epochs: 500
   batch_size: 16
   device: "cuda"
-  torch_seed: 7 #42 #99 #42
-  numpy_seed: 7 #42 #99 #42
+  torch_seed: 7 
+  numpy_seed: 7 
   version: 0
   n_workers: 4
   eval_metrics: "Accuracy/Recall/Dice"
@@ -43,7 +43,7 @@ log_steps:
   checkpoint: 500
 
 base_exp: "quebectrees_experiment_processor_unet"
-comments: "ITS on the quebectrees with dice loss."
+comments: "ITS on the quebectrees with Hloss."
 
 wandb:
   tags: ["processor_unet", "HLoss", "15_classes", "semseg", "quebectrees"]
