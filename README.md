@@ -30,7 +30,7 @@ To set up your development environment:
    ```
    If you only want to download the dataset then you can run:
    ```
-   make all
+   make download
    ```  
 
 ### Downloading the Dataset
@@ -54,14 +54,10 @@ To train the model:
 
 To run inference using the trained model:
 
-1. [Explain how to load the trained model]
-2. [Provide instructions for running inference]
-3. [Include example commands or code snippets]
-
-Example:
-```
-python inference.py --model_path /path/to/saved_model --input /path/to/input_data
-```
+1. Download the best performing Processor Unet weights from here.
+2. Run this command to run inference: ```python treemonitoring/models/tester.py --cfg treemonitoring/models/configs/processor_unet_7.yaml --ckp PATH_TO_CHECKPOINT --savepath OUTPUT_DIR --debug```
+3. Here, we want to replace ```PATH_TO_CHECKPOINT``` and ```OUTPUT_DIR``` with the path of the downloaded model weights and output directory.
+4. The outputs from the model will be stored in the target dir.
 
 ## License
 
