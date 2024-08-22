@@ -37,7 +37,7 @@ To set up your development environment:
 
 To get started with this project, you'll need to run bash ```data_download.sh```. By default, the makefile runs the script to download the data, so if you are using the makefile to create the environment then you can skip this step.
 
-The default data download directory can be altered by changing the TARGET_FOLDER variable.
+The default data download directory can be altered by changing the ```TARGET_FOLDER``` variable.
 
 ## Training
 
