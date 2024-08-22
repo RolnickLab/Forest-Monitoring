@@ -7,7 +7,7 @@ URL="https://zenodo.org/records/13126114/files/forest_monitoring.tar.gz?download
 TAR_FILE="forest_monitoring.tar.gz"
 
 # Target folder for extraction
-TARGET_FOLDER="data/tree_data"
+TARGET_FOLDER="data/"
 
 # Download the tar file
 echo "Downloading $TAR_FILE..."
