@@ -14,8 +14,8 @@ To set up your development environment:
 
 1. Clone this repository:
    ```
-   git clone https://github.com/your-username/your-repo-name.git
-   cd your-repo-name
+   git clone https://github.com/RolnickLab/Forest-Monitoring.git
+   cd Forest-Monitoring
    ```
 
 2. Create a virtual environment (optional but recommended):
