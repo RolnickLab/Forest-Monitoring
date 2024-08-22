@@ -47,6 +47,8 @@ class BaseExperiment:
         parser.add_argument(
             "--debug", help="Debug mode to switch wand mode offline", action="store_true"
         )
+        parser.add_argument("--savedir", help="Path to save output images.", default=None
+        )
         args = parser.parse_args()
         return args
 
