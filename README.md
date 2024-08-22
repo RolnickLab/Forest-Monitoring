@@ -46,15 +46,15 @@ To train the model:
 1. Activate the venv (if using virtual environments) by ```source venv/bin/activate```.
 2. There are 4 separate bash files, one for each model. For eg. the one used to train the Processor-UNet is ```processor_unet.sh```.
 3. Inside the bash script, the config file used for each model training is given.
-   - Eg. In this command ```python treemonitoring/models/trainer.py --cfg treemonitoring/models/configs/processor_unet_7.yaml```, we can edit the hyperparameters like learning rate, batch size and loss etc.
-   - To train the model without wand logging, we can use the debug flag like ```python treemonitoring/models/trainer.py --cfg treemonitoring/models/configs/processor_unet_7.yaml --debug```.
+   - Eg. In this command ```python treemonitoring/models/trainer.py --cfg treemonitoring/models/configs/processor_unet_7.yaml```,  the config file is ```processor_unet_7.yaml``` where we can edit the hyperparameters like learning rate, batch size and loss etc.
+   - To train the model without wand logging, we can use the debug flag like: ```python treemonitoring/models/trainer.py --cfg treemonitoring/models/configs/processor_unet_7.yaml --debug```.
 4. To train the model with default hyperparameters as used in the paper, run ```bash processor_unet.sh``` (same for other models).
 
 ## Inference
 
 To run inference using the trained model:
 
-1. Download the best performing Processor Unet weights from here.
+1. Download the best performing Processor Unet weights from [here](https://drive.google.com/file/d/1SidcXzDIlZF2RPu1dCSHLR2r7vXykZj6/view?usp=sharing).
 2. Run this command to run inference: ```python treemonitoring/models/tester.py --cfg treemonitoring/models/configs/processor_unet_7.yaml --ckp PATH_TO_CHECKPOINT --savepath OUTPUT_DIR --debug```
 3. Here, we want to replace ```PATH_TO_CHECKPOINT``` and ```OUTPUT_DIR``` with the path of the downloaded model weights and output directory.
 4. The outputs from the model will be stored in the target dir.
