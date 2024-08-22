@@ -8,7 +8,7 @@ setup: download install install-dev
 
 download:
 	@echo "Downloading data..."
-	python data_download.sh
+	bash data_download.sh
 
 install:
 	@echo "Installing required packages..."
